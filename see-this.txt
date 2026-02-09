@@ -1,0 +1,201 @@
+Step 1 — Create NestJS project
+npm i -g @nestjs/cli
+nest new crm-backend
+cd crm-backend
+
+
+Install dependencies:
+
+npm install @nestjs/config @nestjs/jwt @nestjs/passport passport passport-jwt bcrypt
+npm install prisma @prisma/client
+npm install class-validator class-transformer
+
+Step 2 — Initialize Prisma
+npx prisma init
+
+
+Edit .env
+
+DATABASE_URL="postgresql://postgres:password@localhost:5432/crm"
+
+Step 3 — Prisma schema (IMPORTANT)
+
+Replace prisma/schema.prisma with the base structure (core tables first).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  manager
+  sales_rep
+}
+
+enum LeadStatus {
+  Created
+  Processing
+  Finished
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password_hash String
+  first_name    String
+  last_name     String
+  role          Role     @default(sales_rep)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  created_leads Lead[]   @relation("CreatedLeads")
+  assigned_leads Lead[]  @relation("AssignedLeads")
+}
+
+model Company {
+  id        Int      @id @default(autoincrement())
+  name      String
+  website   String?
+  industry  String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  leads Lead[]
+}
+
+model Lead {
+  id        Int        @id @default(autoincrement())
+  first_name String
+  last_name  String
+  email      String?
+  phone      String?
+  status     LeadStatus @default(Created)
+
+  company_id Int?
+  company    Company?  @relation(fields: [company_id], references: [id])
+
+  created_by Int
+  creator    User      @relation("CreatedLeads", fields: [created_by], references: [id])
+
+  assigned_to Int?
+  assignee    User?    @relation("AssignedLeads", fields: [assigned_to], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+
+Run:
+
+npx prisma migrate dev --name init
+
+Step 4 — Create Core Modules
+nest g module prisma
+nest g service prisma
+
+nest g module auth
+nest g controller auth
+nest g service auth
+
+nest g module users
+nest g controller users
+nest g service users
+
+nest g module leads
+nest g controller leads
+nest g service leads
+
+nest g module companies
+nest g controller companies
+nest g service companies
+
+Step 5 — Prisma Service
+
+src/prisma/prisma.service.ts
+
+import { Injectable, OnModuleInit } from '@nestjs/common'
+import { PrismaClient } from '@prisma/client'
+
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit {
+  async onModuleInit() {
+    await this.$connect()
+  }
+}
+
+Step 6 — Example Lead Service
+
+src/leads/leads.service.ts
+
+@Injectable()
+export class LeadsService {
+  constructor(private prisma: PrismaService) {}
+
+  create(data: any) {
+    return this.prisma.lead.create({ data })
+  }
+
+  findAll() {
+    return this.prisma.lead.findMany({
+      include: { company: true, assignee: true },
+    })
+  }
+
+  findOne(id: number) {
+    return this.prisma.lead.findUnique({
+      where: { id },
+      include: { company: true, assignee: true },
+    })
+  }
+
+  update(id: number, data: any) {
+    return this.prisma.lead.update({
+      where: { id },
+      data,
+    })
+  }
+
+  remove(id: number) {
+    return this.prisma.lead.delete({ where: { id } })
+  }
+}
+
+Step 7 — Example Lead Controller
+
+src/leads/leads.controller.ts
+
+@Controller('leads')
+export class LeadsController {
+  constructor(private readonly leadsService: LeadsService) {}
+
+  @Post()
+  create(@Body() body) {
+    return this.leadsService.create(body)
+  }
+
+  @Get()
+  findAll() {
+    return this.leadsService.findAll()
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.leadsService.findOne(+id)
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() body) {
+    return this.leadsService.update(+id, body)
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.leadsService.remove(+id)
+  }
+}

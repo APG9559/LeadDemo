@@ -1,0 +1,174 @@
+-- Users table (CRM users - sales reps, managers, etc.)
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    role ENUM('admin', 'manager', 'sales_rep') DEFAULT 'sales_rep',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_role (role)
+);
+
+-- Companies table
+CREATE TABLE companies (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    website VARCHAR(255),
+    industry VARCHAR(100),
+    size ENUM('1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'),
+    phone VARCHAR(50),
+    address TEXT,
+    city VARCHAR(100),
+    state VARCHAR(100),
+    country VARCHAR(100),
+    postal_code VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_name (name)
+);
+
+-- Lead sources table
+CREATE TABLE lead_sources (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Leads table (core entity)
+CREATE TABLE leads (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    job_title VARCHAR(100),
+    company_id INT,
+    
+    -- Status tracking
+    status ENUM('Created', 'Processing', 'Finished') DEFAULT 'Created',
+    quality_score TINYINT CHECK (quality_score BETWEEN 1 AND 10),
+    
+    -- Source tracking
+    lead_source_id INT,
+    
+    -- Assignment
+    created_by INT NOT NULL,
+    assigned_to INT,
+    
+    -- Additional info
+    budget DECIMAL(15, 2),
+    expected_close_date DATE,
+    notes TEXT,
+    
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    converted_at TIMESTAMP NULL,
+    
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL,
+    FOREIGN KEY (lead_source_id) REFERENCES lead_sources(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+    
+    INDEX idx_status (status),
+    INDEX idx_created_by (created_by),
+    INDEX idx_assigned_to (assigned_to),
+    INDEX idx_email (email),
+    INDEX idx_created_at (created_at)
+);
+
+-- Activities table (calls, emails, meetings)
+CREATE TABLE activities (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    lead_id INT NOT NULL,
+    user_id INT NOT NULL,
+    type ENUM('call', 'email', 'meeting', 'note', 'task') NOT NULL,
+    subject VARCHAR(255),
+    description TEXT,
+    duration_minutes INT,
+    outcome ENUM('successful', 'no_answer', 'follow_up_needed', 'not_interested'),
+    scheduled_at TIMESTAMP NULL,
+    completed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    INDEX idx_lead_id (lead_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_type (type),
+    INDEX idx_scheduled_at (scheduled_at)
+);
+
+-- Tags table
+CREATE TABLE tags (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) UNIQUE NOT NULL,
+    color VARCHAR(7) DEFAULT '#3B82F6',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Lead-Tags junction table (many-to-many)
+CREATE TABLE lead_tags (
+    lead_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (lead_id, tag_id),
+    FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+
+-- Status history table (track status changes)
+CREATE TABLE lead_status_history (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    lead_id INT NOT NULL,
+    old_status ENUM('Created', 'Processing', 'Finished'),
+    new_status ENUM('Created', 'Processing', 'Finished') NOT NULL,
+    changed_by INT NOT NULL,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    
+    FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
+    FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE CASCADE,
+    
+    INDEX idx_lead_id (lead_id),
+    INDEX idx_changed_at (changed_at)
+);
+
+-- Custom fields (optional - for flexibility)
+CREATE TABLE custom_fields (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    field_name VARCHAR(100) NOT NULL,
+    field_type ENUM('text', 'number', 'date', 'boolean', 'dropdown') NOT NULL,
+    is_required BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Lead custom field values
+CREATE TABLE lead_custom_values (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    lead_id INT NOT NULL,
+    custom_field_id INT NOT NULL,
+    field_value TEXT,
+    
+    FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
+    FOREIGN KEY (custom_field_id) REFERENCES custom_fields(id) ON DELETE CASCADE,
+    
+    UNIQUE KEY unique_lead_field (lead_id, custom_field_id)
+);
+
+-- Insert some default lead sources
+INSERT INTO lead_sources (name, description) VALUES
+('Website', 'Leads from website contact form'),
+('Referral', 'Referred by existing customer'),
+('Cold Call', 'Outbound cold calling'),
+('Social Media', 'From social media channels'),
+('Email Campaign', 'From email marketing'),
+('Trade Show', 'Met at trade show or event'),
+('Partner', 'From partner network');

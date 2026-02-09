@@ -1,0 +1,5 @@
+npm install @nestjs/config @nestjs/jwt @nestjs/passport passport passport-jwt bcrypt
+npm install @nestjs/typeorm typeorm pg
+npm install class-validator class-transformer
+npm install bcrypt
+npm install -D @types/bcrypt
