@@ -1,17 +1,17 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Post, UseGuards, Body, Request, Patch, Param } from '@nestjs/common';
+import { Controller, Post, UseGuards, Body, Request, Patch, Param, Get } from '@nestjs/common';
 import { LeadsService } from './leads.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AssignLeadDto } from './dto/assign-lead.dto';
 import { UpdateLeadStatusDto } from './dto/update-status.dto';
-import { Roles } from 'src/auth/roles.decorator';
-import { RolesGuard } from 'src/auth/roles.guard';
+// import { Roles } from 'src/auth/roles.decorator';
+// import { RolesGuard } from 'src/auth/roles.guard';
 @Controller('leads')
 export class LeadsController {
     constructor(private readonly leadsService: LeadsService) {}
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin', 'manager')
+    @UseGuards(JwtAuthGuard)
+    // @Roles('admin', 'manager')
     @Post()
     create(@Body() body, @Request() req) {
 
@@ -28,9 +28,11 @@ export class LeadsController {
     ){
         return this.leadsService.assignLead(id, body.assigned_to);
     }
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin', 'manager')
-    @Patch(':id/status')
+
+
+    @UseGuards(JwtAuthGuard)
+    // @Roles('admin', 'manager')
+    @Patch(':id')
     updateStatus(
     @Param('id') id: number,
     @Body() body: UpdateLeadStatusDto,
@@ -39,5 +41,9 @@ export class LeadsController {
     return this.leadsService.updateStatus(id, body.status, req.user.userId);
     }
 
+    @Get()
+    findAll() {
+        return this.leadsService.findAll();
+    }
 
 }

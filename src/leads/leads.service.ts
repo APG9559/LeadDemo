@@ -19,6 +19,10 @@ export class LeadsService {
     const lead = this.leadsRepository.create(data);
     return this.leadsRepository.save(lead);
   }
+  async findAll() {
+    return this.leadsRepository.find({ relations: ['creator', 'assignee'] });
+  }
+  
 
   async assignLead(leadId: number, userId: number){
     return this.leadsRepository.update(leadId, 

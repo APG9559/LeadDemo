@@ -6,9 +6,9 @@ import { ManyToOne } from 'typeorm/decorator/relations/ManyToOne';
 import { Company } from 'src/companies/entities/company.entities';
 
 export enum LeadStatus {
-    CREATED = 'created',
-    PROCESSING = 'processing',
-    FINISHED = 'finished',
+    CREATED = 'Created',
+    PROCESSING = 'Processing',
+    FINISHED = 'Finished',
 }
 
 @Entity('leads')
