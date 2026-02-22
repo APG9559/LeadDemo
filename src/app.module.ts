@@ -8,6 +8,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { LeadsModule } from './leads/leads.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { TagsModule } from './tags/tags.module';
+import { AuthorModule } from './author/author.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { TagsModule } from './tags/tags.module';
     LeadsModule,
     ActivitiesModule,
     TagsModule,
+    AuthorModule,
   ],
   controllers: [AppController],
   providers: [AppService],
