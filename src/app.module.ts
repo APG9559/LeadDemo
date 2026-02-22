@@ -10,17 +10,28 @@ import { ActivitiesModule } from './activities/activities.module';
 import { TagsModule } from './tags/tags.module';
 import { AuthorModule } from './author/author.module';
 
+// # Parameters for Vercel Postgres Templates
+// POSTGRES_URL=postgresql://neondb_owner:npg_RiVTOe8rF2DC@ep-sparkling-king-ai5gyig5-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require
+// POSTGRES_URL_NON_POOLING=postgresql://neondb_owner:npg_RiVTOe8rF2DC@ep-sparkling-king-ai5gyig5.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require
+// POSTGRES_USER=neondb_owner
+// POSTGRES_HOST=ep-sparkling-king-ai5gyig5-pooler.c-4.us-east-1.aws.neon.tech
+// POSTGRES_PASSWORD=npg_RiVTOe8rF2DC
+// POSTGRES_DATABASE=neondb
+
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
+      host: 'ep-sparkling-king-ai5gyig5-pooler.c-4.us-east-1.aws.neon.tech',
       port: 5432,
-      username: 'postgres',
-      password: 'root',
-      database: 'crm',
+      username: 'neondb_owner',
+      password: 'npg_RiVTOe8rF2DC',
+      database: 'neondb',
       autoLoadEntities: true,
-      synchronize: true, // development only
+      synchronize: true,
+      ssl: {
+        rejectUnauthorized: false,
+      },
     }),
     UsersModule,
     AuthModule,
@@ -33,4 +44,4 @@ import { AuthorModule } from './author/author.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
